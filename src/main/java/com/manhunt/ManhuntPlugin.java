@@ -10,6 +10,7 @@ import com.manhunt.listener.InventoryListener;
 import com.manhunt.listener.PlayerListener;
 import com.manhunt.player.CompassManager;
 import com.manhunt.player.PlayerManager;
+import com.manhunt.player.ProfileManager;
 import com.manhunt.world.WorldManager;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -23,6 +24,7 @@ public class ManhuntPlugin extends JavaPlugin {
     private GameManager gameManager;
     private TimerManager timerManager;
     private ManhuntGUI guiManager;
+    private ProfileManager profileManager;
 
     @Override
     public void onEnable() {
@@ -31,6 +33,7 @@ public class ManhuntPlugin extends JavaPlugin {
         this.configManager.init();
 
         // 2. Managers
+        this.profileManager = new ProfileManager(this);
         this.worldManager = new WorldManager(this);
         this.playerManager = new PlayerManager(this);
         this.compassManager = new CompassManager(this);
@@ -95,5 +98,9 @@ public class ManhuntPlugin extends JavaPlugin {
 
     public ManhuntGUI getGuiManager() {
         return guiManager;
+    }
+
+    public ProfileManager getProfileManager() {
+        return profileManager;
     }
 }

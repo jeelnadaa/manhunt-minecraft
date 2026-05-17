@@ -31,6 +31,10 @@ public class PlayerListener implements Listener {
         Player player = event.getPlayer();
         plugin.getTimerManager().showToPlayer(player);
 
+        if (plugin.getProfileManager() != null) {
+            plugin.getProfileManager().handleJoin(player);
+        }
+
         if (plugin.getGameManager().getState() == GameState.PLAYING) {
             if (!plugin.getPlayerManager().isRunner(player)) {
                 plugin.getCompassManager().updateAllHuntersInventory();
@@ -42,6 +46,10 @@ public class PlayerListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         plugin.getTimerManager().hideFromPlayer(player);
+
+        if (plugin.getProfileManager() != null) {
+            plugin.getProfileManager().handleQuit(player);
+        }
 
         if (plugin.getGameManager().getState() == GameState.PLAYING) {
             if (plugin.getPlayerManager().isRunner(player)) {

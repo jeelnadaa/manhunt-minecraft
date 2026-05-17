@@ -12,6 +12,7 @@ A premium, highly interactive, and feature-rich Minecraft Manhunt game mode plug
 - **Isolated World Generation**: `/manhunt generate` creates dedicated `manhunt_world`, `manhunt_world_nether`, and `manhunt_world_the_end` worlds with automatic portal linking.
 - **Interactive Control GUI**: Manage the entire match, add/remove runners, generate worlds, and configure time limits via an intuitive chest GUI (`/manhunt gui`).
 - **BossBar HUD Timer**: Live elapsed time and countdown limits displayed cleanly at the top of the screen.
+- **Isolated Multi-World Profiles**: Completely isolated player profiles (inventories, ender chests, health, XP, location) between the Base Server World and Manhunt Worlds. Players automatically rejoin where they left off, and `/mh generate` cleanly wipes all Manhunt profiles for a fresh match.
 - **Instant Config Synchronization**: All changes made via GUI or CLI instantly update active memory and persist to `config.yml`.
 
 ---

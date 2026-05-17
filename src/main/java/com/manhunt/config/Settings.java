@@ -12,6 +12,7 @@ public class Settings {
     private String baseWorld;
     private String manhuntWorldPrefix;
     private List<UUID> runnerUuids = new ArrayList<>();
+    private long currentGenerationId;
 
     public Settings(ManhuntPlugin plugin) {
         this.plugin = plugin;
@@ -34,6 +35,7 @@ public class Settings {
                 runnerUuids.add(UUID.fromString(s));
             } catch (IllegalArgumentException ignored) {}
         }
+        currentGenerationId = plugin.getConfig().getLong("current-generation-id", System.currentTimeMillis());
     }
 
     public synchronized void save() {
@@ -43,6 +45,7 @@ public class Settings {
         plugin.getConfig().set("manhunt-world", manhuntWorldPrefix);
         List<String> strings = runnerUuids.stream().map(UUID::toString).toList();
         plugin.getConfig().set("runners", strings);
+        plugin.getConfig().set("current-generation-id", currentGenerationId);
         plugin.saveConfig();
     }
 
@@ -103,5 +106,14 @@ public class Settings {
             runnerUuids.remove(uuid);
             save();
         }
+    }
+
+    public long getCurrentGenerationId() {
+        return currentGenerationId;
+    }
+
+    public synchronized void updateCurrentGenerationId() {
+        this.currentGenerationId = System.currentTimeMillis();
+        save();
     }
 }

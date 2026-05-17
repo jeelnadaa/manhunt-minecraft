@@ -20,7 +20,13 @@ public class WorldManager {
     }
 
     public void generateWorlds(Runnable onComplete) {
-        teleportAllToBaseWorld();
+        if (plugin.getProfileManager() != null) {
+            plugin.getProfileManager().switchAllToRealm(false);
+            plugin.getProfileManager().wipeAllManhuntProfiles();
+        } else {
+            teleportAllToBaseWorld();
+        }
+        plugin.getConfigManager().getSettings().updateCurrentGenerationId();
 
         String prefix = plugin.getConfigManager().getSettings().getManhuntWorldPrefix();
         String[] worldNames = { prefix, prefix + "_nether", prefix + "_the_end" };
@@ -82,54 +88,90 @@ public class WorldManager {
     }
 
     public void teleportToManhunt(Player player) {
-        World world = getManhuntOverworld();
-        if (world != null) {
-            player.teleportAsync(world.getSpawnLocation());
-            player.sendMessage("§aTeleported to Manhunt World.");
+        if (plugin.getProfileManager() != null) {
+            plugin.getProfileManager().switchRealm(player, true);
         } else {
-            player.sendMessage("§cManhunt worlds have not been generated yet! Run /mh generate");
+            World world = getManhuntOverworld();
+            if (world != null) {
+                player.teleportAsync(world.getSpawnLocation());
+                player.sendMessage("§aTeleported to Manhunt World.");
+            } else {
+                player.sendMessage("§cManhunt worlds have not been generated yet! Run /mh generate");
+            }
         }
     }
 
     public void teleportAllToManhunt() {
-        World world = getManhuntOverworld();
-        if (world != null) {
-            Location spawn = world.getSpawnLocation();
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                player.teleportAsync(spawn);
-                player.sendMessage("§aTeleported to Manhunt World.");
-            }
+        if (plugin.getProfileManager() != null) {
+            plugin.getProfileManager().switchAllToRealm(true);
         } else {
-            plugin.getLogger().warning("Cannot teleport all: Manhunt world not generated.");
+            World world = getManhuntOverworld();
+            if (world != null) {
+                Location spawn = world.getSpawnLocation();
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    player.teleportAsync(spawn);
+                    player.sendMessage("§aTeleported to Manhunt World.");
+                }
+            } else {
+                plugin.getLogger().warning("Cannot teleport all: Manhunt world not generated.");
+            }
         }
     }
 
     public void teleportAllToBaseWorld() {
-        String baseWorldName = plugin.getConfigManager().getSettings().getBaseWorld();
-        World base = Bukkit.getWorld(baseWorldName);
-        if (base == null && !Bukkit.getWorlds().isEmpty()) {
-            base = Bukkit.getWorlds().get(0);
-        }
-        if (base != null) {
-            Location spawn = base.getSpawnLocation();
-            for (Player player : Bukkit.getOnlinePlayers()) {
-                player.teleportAsync(spawn);
-                player.sendMessage("§eReturned to Base World.");
+        if (plugin.getProfileManager() != null) {
+            plugin.getProfileManager().switchAllToRealm(false);
+        } else {
+            String baseWorldName = plugin.getConfigManager().getSettings().getBaseWorld();
+            World base = Bukkit.getWorld(baseWorldName);
+            if (base == null && !Bukkit.getWorlds().isEmpty()) {
+                base = Bukkit.getWorlds().get(0);
+            }
+            if (base != null) {
+                Location spawn = base.getSpawnLocation();
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    player.teleportAsync(spawn);
+                    player.sendMessage("§eReturned to Base World.");
+                }
             }
         }
     }
 
     public void teleportToBase(Player player) {
+        if (plugin.getProfileManager() != null) {
+            plugin.getProfileManager().switchRealm(player, false);
+        } else {
+            String baseWorldName = plugin.getConfigManager().getSettings().getBaseWorld();
+            World base = Bukkit.getWorld(baseWorldName);
+            if (base == null && !Bukkit.getWorlds().isEmpty()) {
+                base = Bukkit.getWorlds().get(0);
+            }
+            if (base != null) {
+                player.teleportAsync(base.getSpawnLocation());
+                player.sendMessage("§eReturned to Base World.");
+            } else {
+                player.sendMessage("§cBase world could not be found.");
+            }
+        }
+    }
+
+    public java.util.concurrent.CompletableFuture<Boolean> teleportToManhuntSpawn(Player player) {
+        World world = getManhuntOverworld();
+        if (world != null) {
+            return player.teleportAsync(world.getSpawnLocation());
+        }
+        return java.util.concurrent.CompletableFuture.completedFuture(false);
+    }
+
+    public java.util.concurrent.CompletableFuture<Boolean> teleportToBaseSpawn(Player player) {
         String baseWorldName = plugin.getConfigManager().getSettings().getBaseWorld();
         World base = Bukkit.getWorld(baseWorldName);
         if (base == null && !Bukkit.getWorlds().isEmpty()) {
             base = Bukkit.getWorlds().get(0);
         }
         if (base != null) {
-            player.teleportAsync(base.getSpawnLocation());
-            player.sendMessage("§eReturned to Base World.");
-        } else {
-            player.sendMessage("§cBase world could not be found.");
+            return player.teleportAsync(base.getSpawnLocation());
         }
+        return java.util.concurrent.CompletableFuture.completedFuture(false);
     }
 }
