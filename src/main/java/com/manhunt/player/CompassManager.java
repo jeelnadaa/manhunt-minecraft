@@ -64,12 +64,14 @@ public class CompassManager {
             Inventory inv = hunter.getInventory();
             List<UUID> trackedInInv = new ArrayList<>();
 
-            // 1. Remove compasses for invalid runners
+            // 1. Remove compasses for invalid or dead runners
             for (int i = 0; i < inv.getSize(); i++) {
                 ItemStack item = inv.getItem(i);
                 if (isTrackerCompass(item)) {
                     UUID tracked = getTrackedRunner(item);
-                    if (tracked == null || !runnerUuids.contains(tracked)) {
+                    Player trackedPlayer = tracked != null ? Bukkit.getPlayer(tracked) : null;
+                    boolean isDeadOrSpec = trackedPlayer != null && trackedPlayer.getGameMode() == org.bukkit.GameMode.SPECTATOR;
+                    if (tracked == null || !runnerUuids.contains(tracked) || isDeadOrSpec) {
                         inv.setItem(i, null);
                     } else {
                         trackedInInv.add(tracked);
@@ -81,7 +83,7 @@ public class CompassManager {
             for (UUID runnerUuid : runnerUuids) {
                 if (!trackedInInv.contains(runnerUuid)) {
                     Player runner = Bukkit.getPlayer(runnerUuid);
-                    if (runner != null) {
+                    if (runner != null && runner.isOnline() && runner.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
                         ItemStack newCompass = createTrackerCompass(runner);
                         boolean placed = false;
                         for (int slot : slots) {

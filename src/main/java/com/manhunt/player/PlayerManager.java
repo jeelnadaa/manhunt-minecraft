@@ -63,6 +63,7 @@ public class PlayerManager {
         if (isRunner(runner)) {
             runner.setGameMode(GameMode.SPECTATOR);
             runner.sendMessage("§cYou died and are now a spectator!");
+            plugin.getCompassManager().updateAllHuntersInventory();
         }
     }
 
