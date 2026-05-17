@@ -14,6 +14,7 @@ public class Settings {
     private List<UUID> runnerUuids = new ArrayList<>();
     private long currentGenerationId;
     private boolean chatLogs = true;
+    private long headStartSeconds = 0;
 
     public Settings(ManhuntPlugin plugin) {
         this.plugin = plugin;
@@ -26,6 +27,7 @@ public class Settings {
             compassSlots.addAll(List.of(8, 7, 6, 5, 4, 40));
         }
         timeLimitSeconds = plugin.getConfig().getLong("time-limit", 0);
+        headStartSeconds = plugin.getConfig().getLong("head-start", 0);
         baseWorld = plugin.getConfig().getString("base-world", "world");
         manhuntWorldPrefix = plugin.getConfig().getString("manhunt-world", "manhunt_world");
 
@@ -43,8 +45,8 @@ public class Settings {
     public synchronized void save() {
         plugin.getConfig().set("compass-slots", compassSlots);
         plugin.getConfig().set("time-limit", timeLimitSeconds);
+        plugin.getConfig().set("head-start", headStartSeconds);
         plugin.getConfig().set("base-world", baseWorld);
-        plugin.getConfig().set("manhunt-world", manhuntWorldPrefix);
         List<String> strings = runnerUuids.stream().map(UUID::toString).toList();
         plugin.getConfig().set("runners", strings);
         plugin.getConfig().set("current-generation-id", currentGenerationId);
@@ -67,6 +69,15 @@ public class Settings {
 
     public synchronized void setTimeLimitSeconds(long seconds) {
         this.timeLimitSeconds = seconds;
+        save();
+    }
+
+    public long getHeadStartSeconds() {
+        return headStartSeconds;
+    }
+
+    public synchronized void setHeadStartSeconds(long seconds) {
+        this.headStartSeconds = seconds;
         save();
     }
 

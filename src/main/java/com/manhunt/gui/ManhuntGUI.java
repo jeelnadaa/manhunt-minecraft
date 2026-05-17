@@ -20,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ManhuntGUI implements Listener {
     private final ManhuntPlugin plugin;
     private final Map<UUID, Boolean> pendingTimerInput = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> pendingHeadStartInput = new ConcurrentHashMap<>();
 
     public ManhuntGUI(ManhuntPlugin plugin) {
         this.plugin = plugin;
@@ -27,6 +28,10 @@ public class ManhuntGUI implements Listener {
 
     public boolean isPendingTimerInput(Player player) {
         return pendingTimerInput.containsKey(player.getUniqueId());
+    }
+
+    public boolean isPendingHeadStartInput(Player player) {
+        return pendingHeadStartInput.containsKey(player.getUniqueId());
     }
 
     public void handleCustomTimerInput(Player p, String msg) {
@@ -49,19 +54,36 @@ public class ManhuntGUI implements Listener {
         }
     }
 
+    public void handleCustomHeadStartInput(Player p, String msg) {
+        pendingHeadStartInput.remove(p.getUniqueId());
+        if (msg.equalsIgnoreCase("cancel")) {
+            p.sendMessage("§cCustom headstart input cancelled.");
+            Bukkit.getScheduler().runTask(plugin, () -> openHeadStartGUI(p));
+            return;
+        }
+        try {
+            long secs = Long.parseLong(msg.trim());
+            if (secs < 0) secs = 0;
+            plugin.getConfigManager().getSettings().setHeadStartSeconds(secs);
+            p.sendMessage("§aHead-start duration instantly updated to " + (secs == 0 ? "None (0s)" : secs + " seconds."));
+            Bukkit.getScheduler().runTask(plugin, () -> openHeadStartGUI(p));
+        } catch (NumberFormatException e) {
+            p.sendMessage("§cInvalid number! Input cancelled.");
+            Bukkit.getScheduler().runTask(plugin, () -> openHeadStartGUI(p));
+        }
+    }
+
     public void openMainGUI(Player player) {
         Inventory inv = Bukkit.createInventory(null, 27, "§8§lManhunt Control Panel");
 
-        inv.setItem(10, createGuiItem(Material.EMERALD_BLOCK, "§a§lStart Match", "§7Click to start the manhunt game."));
-
         GameState state = plugin.getGameManager().getState();
-        if (state == GameState.PAUSED) {
-            inv.setItem(11, createGuiItem(Material.EMERALD, "§a§lResume Match", "§7Click to unpause and resume match."));
-        } else {
-            inv.setItem(11, createGuiItem(Material.GOLD_BLOCK, "§e§lPause Match", "§7Click to freeze all players."));
-        }
+        String stateStr = state == GameState.PLAYING ? "§a§lPLAYING" : (state == GameState.PAUSED ? "§e§lPAUSED" : "§7§lWAITING");
 
-        inv.setItem(12, createGuiItem(Material.REDSTONE_BLOCK, "§c§lEnd Match", "§7Click to end match and return to base world."));
+        inv.setItem(4, createGuiItem(Material.ENDER_EYE, "§e§lManhunt Status: " + stateStr, "§7Manage your game settings below."));
+
+        inv.setItem(10, createGuiItem(Material.EMERALD_BLOCK, "§a§lStart Match", "§7Click to start the manhunt."));
+        inv.setItem(11, createGuiItem(Material.GOLD_BLOCK, "§e§lPause / Resume", "§7Click to freeze or unfreeze match."));
+        inv.setItem(12, createGuiItem(Material.REDSTONE_BLOCK, "§c§lEnd Match", "§7Click to end match and return to base."));
 
         boolean chatLogs = plugin.getConfigManager().getSettings().isChatLogsEnabled();
         inv.setItem(13, createGuiItem(Material.PAPER, "§b§lChat Logs: " + (chatLogs ? "§a§lENABLED" : "§c§lDISABLED"), "§7Click to toggle plugin chat broadcasts."));
@@ -72,6 +94,10 @@ public class ManhuntGUI implements Listener {
         long limit = plugin.getConfigManager().getSettings().getTimeLimitSeconds();
         String limitStr = limit == 0 ? "Indefinite" : (limit / 60) + " minutes";
         inv.setItem(16, createGuiItem(Material.CLOCK, "§6§lTime Limit: §e" + limitStr, "§7Click to configure time limit options."));
+
+        long grace = plugin.getConfigManager().getSettings().getHeadStartSeconds();
+        String graceStr = grace == 0 ? "None (0s)" : grace + " seconds";
+        inv.setItem(17, createGuiItem(Material.GOLDEN_BOOTS, "§e§lHead Start: §a" + graceStr, "§7Click to configure head-start grace period."));
 
         player.openInventory(inv);
     }
@@ -87,6 +113,23 @@ public class ManhuntGUI implements Listener {
         inv.setItem(14, createGuiItem(Material.DIAMOND, "§b§l2 Hours", "§7Set time limit to 7200 seconds" + (current == 7200 ? " §a(Active)" : "")));
 
         inv.setItem(16, createGuiItem(Material.NAME_TAG, "§d§lCustom Time", "§7Click to type custom minutes in chat."));
+
+        inv.setItem(26, createGuiItem(Material.ARROW, "§c§l⬅ Back to Main Menu", null));
+
+        player.openInventory(inv);
+    }
+
+    public void openHeadStartGUI(Player player) {
+        Inventory inv = Bukkit.createInventory(null, 27, "§8§lHead-Start Configuration");
+
+        long current = plugin.getConfigManager().getSettings().getHeadStartSeconds();
+        inv.setItem(10, createGuiItem(Material.BARRIER, "§c§lNone (0s)", "§7No head-start grace period" + (current == 0 ? " §a(Active)" : "")));
+        inv.setItem(11, createGuiItem(Material.RABBIT_FOOT, "§e§l15 Seconds", "§7Set head-start to 15s" + (current == 15 ? " §a(Active)" : "")));
+        inv.setItem(12, createGuiItem(Material.FEATHER, "§e§l30 Seconds", "§7Set head-start to 30s" + (current == 30 ? " §a(Active)" : "")));
+        inv.setItem(13, createGuiItem(Material.SUGAR, "§e§l60 Seconds", "§7Set head-start to 60s" + (current == 60 ? " §a(Active)" : "")));
+        inv.setItem(14, createGuiItem(Material.BLAZE_POWDER, "§e§l120 Seconds", "§7Set head-start to 120s" + (current == 120 ? " §a(Active)" : "")));
+
+        inv.setItem(16, createGuiItem(Material.NAME_TAG, "§d§lCustom Head-Start", "§7Click to type custom seconds in chat."));
 
         inv.setItem(26, createGuiItem(Material.ARROW, "§c§l⬅ Back to Main Menu", null));
 
@@ -196,6 +239,13 @@ public class ManhuntGUI implements Listener {
                 openRunnersGUI(player);
             } else if (slot == 16) {
                 openTimerGUI(player);
+            } else if (slot == 17) {
+                if (plugin.getGameManager().getState() == GameState.PLAYING || plugin.getGameManager().getState() == GameState.STARTING) {
+                    player.sendMessage("§cCannot modify headstart while match is active!");
+                    player.closeInventory();
+                } else {
+                    openHeadStartGUI(player);
+                }
             }
         } else if (title.equals("§8§lTimer Manager")) {
             event.setCancelled(true);
@@ -224,6 +274,36 @@ public class ManhuntGUI implements Listener {
                 player.closeInventory();
                 pendingTimerInput.put(player.getUniqueId(), true);
                 player.sendMessage("§eType your custom time limit in minutes in chat (or type 'cancel').");
+            } else if (slot == 26) {
+                openMainGUI(player);
+            }
+        } else if (title.equals("§8§lHead-Start Configuration")) {
+            event.setCancelled(true);
+            int slot = event.getRawSlot();
+            if (slot == 10) {
+                plugin.getConfigManager().getSettings().setHeadStartSeconds(0);
+                player.sendMessage("§aHead-start instantly updated to None (0s).");
+                openHeadStartGUI(player);
+            } else if (slot == 11) {
+                plugin.getConfigManager().getSettings().setHeadStartSeconds(15);
+                player.sendMessage("§aHead-start instantly updated to 15 seconds.");
+                openHeadStartGUI(player);
+            } else if (slot == 12) {
+                plugin.getConfigManager().getSettings().setHeadStartSeconds(30);
+                player.sendMessage("§aHead-start instantly updated to 30 seconds.");
+                openHeadStartGUI(player);
+            } else if (slot == 13) {
+                plugin.getConfigManager().getSettings().setHeadStartSeconds(60);
+                player.sendMessage("§aHead-start instantly updated to 60 seconds.");
+                openHeadStartGUI(player);
+            } else if (slot == 14) {
+                plugin.getConfigManager().getSettings().setHeadStartSeconds(120);
+                player.sendMessage("§aHead-start instantly updated to 120 seconds.");
+                openHeadStartGUI(player);
+            } else if (slot == 16) {
+                player.closeInventory();
+                pendingHeadStartInput.put(player.getUniqueId(), true);
+                player.sendMessage("§eType your custom head-start duration in seconds in chat (or type 'cancel').");
             } else if (slot == 26) {
                 openMainGUI(player);
             }

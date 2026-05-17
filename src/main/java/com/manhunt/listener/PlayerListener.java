@@ -55,7 +55,7 @@ public class PlayerListener implements Listener {
             plugin.getProfileManager().handleQuit(player);
         }
 
-        if (plugin.getGameManager().getState() == GameState.PLAYING) {
+        if (plugin.getGameManager().getState() == GameState.PLAYING || plugin.getGameManager().getState() == GameState.STARTING) {
             if (plugin.getPlayerManager().isRunner(player)) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     if (plugin.getPlayerManager().areAllRunnersDead()) {
@@ -70,7 +70,7 @@ public class PlayerListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
 
-        if (plugin.getGameManager().getState() == GameState.PLAYING) {
+        if (plugin.getGameManager().getState() == GameState.PLAYING || plugin.getGameManager().getState() == GameState.STARTING) {
             if (plugin.getPlayerManager().isRunner(player)) {
                 plugin.getPlayerManager().handleRunnerDeath(player);
                 if (plugin.getPlayerManager().areAllRunnersDead()) {
@@ -159,6 +159,14 @@ public class PlayerListener implements Listener {
             String message = event.getMessage();
             Bukkit.getScheduler().runTask(plugin, () -> {
                 plugin.getGuiManager().handleCustomTimerInput(player, message);
+            });
+            return;
+        }
+        if (plugin.getGuiManager().isPendingHeadStartInput(player)) {
+            event.setCancelled(true);
+            String message = event.getMessage();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                plugin.getGuiManager().handleCustomHeadStartInput(player, message);
             });
         }
     }

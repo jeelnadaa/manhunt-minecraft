@@ -174,7 +174,25 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
                     sender.sendMessage("§aManhunt chat logs toggled to " + (!current ? "ENABLED" : "DISABLED") + ".");
                 }
             }
-            default -> sender.sendMessage("§cUnknown subcommand. Options: gui, generate, tp, start, pause, resume, unpause, end, runner, timer, logs, reload");
+            case "headstart", "grace" -> {
+                if (plugin.getGameManager().getState() == com.manhunt.game.GameState.PLAYING || plugin.getGameManager().getState() == com.manhunt.game.GameState.STARTING) {
+                    sender.sendMessage("§cCannot customize headstart once match has already started!");
+                    return true;
+                }
+                if (args.length >= 2) {
+                    try {
+                        long secs = Long.parseLong(args[1]);
+                        if (secs < 0) secs = 0;
+                        plugin.getConfigManager().getSettings().setHeadStartSeconds(secs);
+                        sender.sendMessage("§aHead-start duration set to " + (secs == 0 ? "None (0s)" : secs + " seconds."));
+                    } catch (NumberFormatException e) {
+                        sender.sendMessage("§cInvalid number of seconds.");
+                    }
+                } else {
+                    sender.sendMessage("§cUsage: /manhunt headstart <seconds>");
+                }
+            }
+            default -> sender.sendMessage("§cUnknown subcommand. Options: gui, generate, tp, start, pause, resume, unpause, end, runner, timer, logs, headstart, reload");
         }
         return true;
     }
@@ -182,7 +200,7 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("gui", "generate", "tp", "start", "pause", "resume", "unpause", "end", "runner", "timer", "logs", "reload");
+            return List.of("gui", "generate", "tp", "start", "pause", "resume", "unpause", "end", "runner", "timer", "logs", "headstart", "reload");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("runner")) {
             return List.of("add", "remove", "list");

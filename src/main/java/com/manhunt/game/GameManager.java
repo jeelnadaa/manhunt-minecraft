@@ -10,10 +10,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.scheduler.BukkitTask;
 
 public class GameManager {
     private final ManhuntPlugin plugin;
     private GameState state = GameState.WAITING;
+    private BukkitTask graceTask;
+    private long remainingGraceSeconds = 0;
 
     public GameManager(ManhuntPlugin plugin) {
         this.plugin = plugin;
@@ -24,7 +27,7 @@ public class GameManager {
     }
 
     public void start() {
-        if (state == GameState.PLAYING) {
+        if (state == GameState.PLAYING || state == GameState.STARTING) {
             return;
         }
 
@@ -39,7 +42,6 @@ public class GameManager {
     }
 
     private void executeStart() {
-        state = GameState.PLAYING;
         plugin.getWorldManager().teleportAllToManhunt();
 
         // Heal and reset players
@@ -47,18 +49,77 @@ public class GameManager {
             p.setHealth(20.0);
             p.setFoodLevel(20);
             p.setSaturation(20.0f);
-            p.sendTitle("§a§lMANHUNT STARTED", "§eRunners vs Hunters!", 10, 70, 20);
             p.playSound(p.getLocation(), Sound.EVENT_RAID_HORN, 1.0f, 1.0f);
         }
 
         plugin.getCompassManager().updateAllHuntersInventory();
-        plugin.getTimerManager().start();
+
+        long grace = plugin.getConfigManager().getSettings().getHeadStartSeconds();
+        if (grace > 0) {
+            state = GameState.STARTING;
+            remainingGraceSeconds = grace;
+            startGraceCountdown(grace);
+        } else {
+            state = GameState.PLAYING;
+            for (Player p : Bukkit.getOnlinePlayers()) {
+                p.sendTitle("§a§lMANHUNT STARTED", "§eRunners vs Hunters!", 10, 70, 20);
+            }
+            plugin.getTimerManager().start();
+        }
+    }
+
+    private void startGraceCountdown(long totalSeconds) {
+        if (graceTask != null) {
+            graceTask.cancel();
+        }
+
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (plugin.getPlayerManager().isRunner(p)) {
+                p.sendTitle("§a§lHEAD START!", "§eRun while hunters are frozen! (" + totalSeconds + "s)", 10, 70, 20);
+            } else {
+                p.sendTitle("§6§lGRACE PERIOD", totalSeconds + " seconds remaining!", 10, 70, 20);
+            }
+        }
+
+        graceTask = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+            @Override
+            public void run() {
+                if (state != GameState.STARTING) {
+                    if (graceTask != null) graceTask.cancel();
+                    return;
+                }
+
+                if (remainingGraceSeconds <= 0) {
+                    state = GameState.PLAYING;
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        p.sendTitle("§c§lTHE HUNT HAS BEGUN!", "§eHunters are un-frozen! Go!", 10, 70, 20);
+                        p.playSound(p.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 1.0f, 1.0f);
+                    }
+                    plugin.getTimerManager().start();
+                    if (graceTask != null) graceTask.cancel();
+                } else {
+                    for (Player p : Bukkit.getOnlinePlayers()) {
+                        if (!plugin.getPlayerManager().isRunner(p)) {
+                            p.sendActionBar("§6§lHunters Frozen: §e" + remainingGraceSeconds + "s");
+                        } else {
+                            p.sendActionBar("§a§lHead Start: §e" + remainingGraceSeconds + "s");
+                        }
+                    }
+                    remainingGraceSeconds--;
+                }
+            }
+        }, 0L, 20L);
     }
 
     public boolean pause() {
-        if (state == GameState.PLAYING) {
+        if (state == GameState.PLAYING || state == GameState.STARTING) {
+            GameState prev = state;
             state = GameState.PAUSED;
-            plugin.getTimerManager().pause();
+            if (prev == GameState.PLAYING) {
+                plugin.getTimerManager().pause();
+            } else if (prev == GameState.STARTING) {
+                if (graceTask != null) graceTask.cancel();
+            }
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendTitle("§c§lGAME PAUSED", "§7Nobody can move or take damage", 10, 70, 20);
                 p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.0f, 0.8f);
@@ -70,8 +131,13 @@ public class GameManager {
 
     public boolean resume() {
         if (state == GameState.PAUSED) {
-            state = GameState.PLAYING;
-            plugin.getTimerManager().start();
+            if (remainingGraceSeconds > 0) {
+                state = GameState.STARTING;
+                startGraceCountdown(remainingGraceSeconds);
+            } else {
+                state = GameState.PLAYING;
+                plugin.getTimerManager().start();
+            }
             for (Player p : Bukkit.getOnlinePlayers()) {
                 p.sendTitle("§a§lGAME RESUMED", "§eGo go go!", 10, 70, 20);
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.2f);
@@ -82,9 +148,13 @@ public class GameManager {
     }
 
     public boolean end() {
-        if (state != GameState.PLAYING && state != GameState.PAUSED) {
+        if (state != GameState.PLAYING && state != GameState.PAUSED && state != GameState.STARTING) {
             return false;
         }
+        if (graceTask != null) {
+            graceTask.cancel();
+        }
+        remainingGraceSeconds = 0;
         state = GameState.ENDED;
         plugin.getTimerManager().reset();
 
@@ -110,7 +180,9 @@ public class GameManager {
     }
 
     public void handleRunnersWin() {
-        if (state != GameState.PLAYING) return;
+        if (state != GameState.PLAYING && state != GameState.STARTING) return;
+        if (graceTask != null) graceTask.cancel();
+        remainingGraceSeconds = 0;
         state = GameState.ENDED;
         plugin.getTimerManager().pause();
 
@@ -124,7 +196,9 @@ public class GameManager {
     }
 
     public void handleHuntersWin() {
-        if (state != GameState.PLAYING) return;
+        if (state != GameState.PLAYING && state != GameState.STARTING) return;
+        if (graceTask != null) graceTask.cancel();
+        remainingGraceSeconds = 0;
         state = GameState.ENDED;
         plugin.getTimerManager().pause();
 
@@ -138,7 +212,9 @@ public class GameManager {
     }
 
     public void handleTimeUp() {
-        if (state != GameState.PLAYING) return;
+        if (state != GameState.PLAYING && state != GameState.STARTING) return;
+        if (graceTask != null) graceTask.cancel();
+        remainingGraceSeconds = 0;
         state = GameState.ENDED;
         plugin.getTimerManager().pause();
 
