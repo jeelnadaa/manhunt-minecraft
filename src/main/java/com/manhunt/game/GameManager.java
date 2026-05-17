@@ -55,7 +55,7 @@ public class GameManager {
         plugin.getTimerManager().start();
     }
 
-    public void pause() {
+    public boolean pause() {
         if (state == GameState.PLAYING) {
             state = GameState.PAUSED;
             plugin.getTimerManager().pause();
@@ -63,10 +63,12 @@ public class GameManager {
                 p.sendTitle("§c§lGAME PAUSED", "§7Nobody can move or take damage", 10, 70, 20);
                 p.playSound(p.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.0f, 0.8f);
             }
+            return true;
         }
+        return false;
     }
 
-    public void resume() {
+    public boolean resume() {
         if (state == GameState.PAUSED) {
             state = GameState.PLAYING;
             plugin.getTimerManager().start();
@@ -74,10 +76,15 @@ public class GameManager {
                 p.sendTitle("§a§lGAME RESUMED", "§eGo go go!", 10, 70, 20);
                 p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BELL, 1.0f, 1.2f);
             }
+            return true;
         }
+        return false;
     }
 
-    public void end() {
+    public boolean end() {
+        if (state != GameState.PLAYING && state != GameState.PAUSED) {
+            return false;
+        }
         state = GameState.ENDED;
         plugin.getTimerManager().reset();
 
@@ -95,6 +102,7 @@ public class GameManager {
         plugin.getWorldManager().teleportAllToBaseWorld();
         Bukkit.broadcastMessage("§c§lManhunt match has ended.");
         state = GameState.WAITING;
+        return true;
     }
 
     public void handleRunnersWin() {

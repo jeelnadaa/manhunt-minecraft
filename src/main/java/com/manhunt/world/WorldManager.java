@@ -87,4 +87,18 @@ public class WorldManager {
             }
         }
     }
+
+    public void teleportToBase(Player player) {
+        String baseWorldName = plugin.getConfigManager().getSettings().getBaseWorld();
+        World base = Bukkit.getWorld(baseWorldName);
+        if (base == null && !Bukkit.getWorlds().isEmpty()) {
+            base = Bukkit.getWorlds().get(0);
+        }
+        if (base != null) {
+            player.teleportAsync(base.getSpawnLocation());
+            player.sendMessage("§eReturned to Base World.");
+        } else {
+            player.sendMessage("§cBase world could not be found.");
+        }
+    }
 }

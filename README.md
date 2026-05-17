@@ -44,17 +44,17 @@ A premium, highly interactive, and feature-rich Minecraft Manhunt game mode plug
 
 | Subcommand | Description |
 | :--- | :--- |
-| `/mh gui` | Opens the interactive chest GUI control panel. |
+| `/mh gui` | Opens the interactive chest GUI control panel (with multi-layer menus and back buttons). |
 | `/mh generate` | Generates dedicated manhunt worlds (Overworld, Nether, End). |
-| `/mh tp [player\|all]` | Teleports specific or all players to the manhunt world spawn. |
+| `/mh tp <manhunt|base> [player|all]` | Teleports specific or all players to the manhunt world spawn or base world spawn. |
 | `/mh start` | Starts the manhunt match, resets stats, and starts the HUD timer. |
-| `/mh pause` | Freezes the game (no movement, damage, or block breaking). |
-| `/mh resume` | Resumes a paused match. |
-| `/mh end` | Ends the match, clears tracking compasses, and returns players to base world. |
+| `/mh pause` | Freezes an active match (no movement, damage, or block breaking). Safe-guarded against inactive matches. |
+| `/mh resume` or `/mh unpause` | Unpauses and resumes a paused match exactly from where it left off. |
+| `/mh end` | Ends an active match, clears tracking compasses, and returns players to base world. |
 | `/mh runner add <player>` | Assigns a player as a runner and instantly issues compasses. |
 | `/mh runner remove <player>` | Removes a runner and cleans up tracking compasses. |
 | `/mh runner list` | Lists all currently active runners. |
-| `/mh timer limit <sec>` | Sets a time limit countdown (e.g. 3600 for 1 hour). 0 for indefinite. |
+| `/mh timer limit <sec>` or `/mh timer indefinite` | Instantly sets a countdown limit or indefinite run. Supports in-game custom chat prompt via GUI. |
 | `/mh reload` | Reloads configuration from `config.yml`. |
 
 ---

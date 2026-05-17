@@ -45,21 +45,50 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
                 plugin.getWorldManager().generateWorlds(() -> sender.sendMessage("§aWorlds generated successfully!"));
             }
             case "tp" -> {
-                if (args.length > 1 && args[1].equalsIgnoreCase("all")) {
-                    plugin.getWorldManager().teleportAllToManhunt();
-                    sender.sendMessage("§aTeleported all players to Manhunt World.");
-                } else if (args.length > 1) {
-                    Player target = Bukkit.getPlayerExact(args[1]);
-                    if (target != null) {
-                        plugin.getWorldManager().teleportToManhunt(target);
-                        sender.sendMessage("§aTeleported " + target.getName() + " to Manhunt World.");
+                if (args.length < 2) {
+                    if (sender instanceof Player player) {
+                        plugin.getWorldManager().teleportToManhunt(player);
                     } else {
-                        sender.sendMessage("§cPlayer not found.");
+                        sender.sendMessage("§cConsole must specify destination and player: /manhunt tp <manhunt|base> <player|all>");
                     }
-                } else if (sender instanceof Player player) {
-                    plugin.getWorldManager().teleportToManhunt(player);
+                    return true;
+                }
+
+                String dest = args[1].toLowerCase();
+                boolean toBase = dest.equals("base");
+                boolean toManhunt = dest.equals("manhunt") || dest.equals("mh");
+
+                String targetArg = args.length > 2 ? args[2] : (toBase || toManhunt ? null : args[1]);
+                boolean actBase = toBase || (!toManhunt && args.length > 2 && args[1].equalsIgnoreCase("base"));
+
+                if (targetArg == null && sender instanceof Player player) {
+                    targetArg = player.getName();
+                } else if (targetArg == null) {
+                    sender.sendMessage("§cConsole must specify player or all.");
+                    return true;
+                }
+
+                if (targetArg.equalsIgnoreCase("all")) {
+                    if (actBase) {
+                        plugin.getWorldManager().teleportAllToBaseWorld();
+                        sender.sendMessage("§aTeleported all players to Base World.");
+                    } else {
+                        plugin.getWorldManager().teleportAllToManhunt();
+                        sender.sendMessage("§aTeleported all players to Manhunt World.");
+                    }
                 } else {
-                    sender.sendMessage("§cConsole must specify a player.");
+                    Player p = Bukkit.getPlayerExact(targetArg);
+                    if (p != null) {
+                        if (actBase) {
+                            plugin.getWorldManager().teleportToBase(p);
+                            sender.sendMessage("§aTeleported " + p.getName() + " to Base World.");
+                        } else {
+                            plugin.getWorldManager().teleportToManhunt(p);
+                            sender.sendMessage("§aTeleported " + p.getName() + " to Manhunt World.");
+                        }
+                    } else {
+                        sender.sendMessage("§cPlayer not found: " + targetArg);
+                    }
                 }
             }
             case "start" -> {
@@ -67,16 +96,25 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
                 sender.sendMessage("§aStarted Manhunt match!");
             }
             case "pause" -> {
-                plugin.getGameManager().pause();
-                sender.sendMessage("§ePaused Manhunt match!");
+                if (plugin.getGameManager().pause()) {
+                    sender.sendMessage("§ePaused Manhunt match!");
+                } else {
+                    sender.sendMessage("§cCannot pause: No active match is currently playing!");
+                }
             }
-            case "resume" -> {
-                plugin.getGameManager().resume();
-                sender.sendMessage("§aResumed Manhunt match!");
+            case "resume", "unpause" -> {
+                if (plugin.getGameManager().resume()) {
+                    sender.sendMessage("§aResumed Manhunt match!");
+                } else {
+                    sender.sendMessage("§cCannot resume: Match is not paused!");
+                }
             }
             case "end" -> {
-                plugin.getGameManager().end();
-                sender.sendMessage("§cEnded Manhunt match!");
+                if (plugin.getGameManager().end()) {
+                    sender.sendMessage("§cEnded Manhunt match!");
+                } else {
+                    sender.sendMessage("§cCannot end: No active match is running!");
+                }
             }
             case "runner" -> {
                 if (args.length < 2) {
@@ -105,23 +143,27 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "timer" -> {
-                if (args.length >= 3 && (args[1].equalsIgnoreCase("set") || args[1].equalsIgnoreCase("limit"))) {
+                if (args.length >= 2 && args[1].equalsIgnoreCase("indefinite")) {
+                    plugin.getConfigManager().getSettings().setTimeLimitSeconds(0);
+                    sender.sendMessage("§aTime limit instantly updated to Indefinite.");
+                } else if (args.length >= 3 && (args[1].equalsIgnoreCase("set") || args[1].equalsIgnoreCase("limit"))) {
                     try {
-                        long secs = Long.parseLong(args[2]);
+                        long mins = Long.parseLong(args[2]);
+                        long secs = mins * 60;
                         plugin.getConfigManager().getSettings().setTimeLimitSeconds(secs);
-                        sender.sendMessage("§aTime limit instantly updated to " + secs + " seconds.");
+                        sender.sendMessage("§aTime limit instantly updated to " + (mins == 0 ? "Indefinite" : mins + " minutes."));
                     } catch (NumberFormatException e) {
                         sender.sendMessage("§cInvalid number.");
                     }
                 } else {
-                    sender.sendMessage("§cUsage: /manhunt timer limit <seconds>");
+                    sender.sendMessage("§cUsage: /manhunt timer limit <minutes> OR /manhunt timer indefinite");
                 }
             }
             case "reload" -> {
                 plugin.getConfigManager().reload();
                 sender.sendMessage("§aManhunt configuration reloaded from disk.");
             }
-            default -> sender.sendMessage("§cUnknown subcommand. Options: gui, generate, tp, start, pause, resume, end, runner, timer, reload");
+            default -> sender.sendMessage("§cUnknown subcommand. Options: gui, generate, tp, start, pause, resume, unpause, end, runner, timer, reload");
         }
         return true;
     }
@@ -129,7 +171,7 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("gui", "generate", "tp", "start", "pause", "resume", "end", "runner", "timer", "reload");
+            return List.of("gui", "generate", "tp", "start", "pause", "resume", "unpause", "end", "runner", "timer", "reload");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("runner")) {
             return List.of("add", "remove", "list");
@@ -138,12 +180,15 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
             return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("tp")) {
+            return List.of("manhunt", "base", "all");
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("tp") && (args[1].equalsIgnoreCase("manhunt") || args[1].equalsIgnoreCase("base"))) {
             List<String> list = new ArrayList<>(Bukkit.getOnlinePlayers().stream().map(Player::getName).toList());
             list.add("all");
             return list;
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("timer")) {
-            return List.of("limit");
+            return List.of("limit", "set", "indefinite");
         }
         return List.of();
     }

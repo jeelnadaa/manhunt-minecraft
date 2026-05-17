@@ -135,4 +135,16 @@ public class PlayerListener implements Listener {
             }
         }
     }
+
+    @EventHandler
+    public void onPlayerChat(org.bukkit.event.player.AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+        if (plugin.getGuiManager().isPendingTimerInput(player)) {
+            event.setCancelled(true);
+            String message = event.getMessage();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                plugin.getGuiManager().handleCustomTimerInput(player, message);
+            });
+        }
+    }
 }
