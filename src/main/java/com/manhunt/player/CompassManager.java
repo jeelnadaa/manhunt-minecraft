@@ -58,21 +58,27 @@ public class CompassManager {
 
     public void updateAllHuntersInventory() {
         List<UUID> runnerUuids = plugin.getConfigManager().getSettings().getRunnerUuids();
-        List<Integer> slots = plugin.getConfigManager().getSettings().getCompassSlots();
+        int[] allSlots = new int[37];
+        for (int i = 0; i < 36; i++) allSlots[i] = i;
+        allSlots[36] = 40;
 
         for (Player hunter : plugin.getPlayerManager().getOnlineHunters()) {
-            Inventory inv = hunter.getInventory();
+            org.bukkit.inventory.PlayerInventory inv = hunter.getInventory();
             List<UUID> trackedInInv = new ArrayList<>();
 
             // 1. Remove compasses for invalid or dead runners
-            for (int i = 0; i < inv.getSize(); i++) {
-                ItemStack item = inv.getItem(i);
+            for (int slotIndex : allSlots) {
+                ItemStack item = slotIndex == 40 ? inv.getItemInOffHand() : inv.getItem(slotIndex);
                 if (isTrackerCompass(item)) {
                     UUID tracked = getTrackedRunner(item);
                     Player trackedPlayer = tracked != null ? Bukkit.getPlayer(tracked) : null;
                     boolean isDeadOrSpec = trackedPlayer != null && trackedPlayer.getGameMode() == org.bukkit.GameMode.SPECTATOR;
                     if (tracked == null || !runnerUuids.contains(tracked) || isDeadOrSpec) {
-                        inv.setItem(i, null);
+                        if (slotIndex == 40) {
+                            inv.setItemInOffHand(null);
+                        } else {
+                            inv.setItem(slotIndex, null);
+                        }
                     } else {
                         trackedInInv.add(tracked);
                     }
@@ -85,18 +91,24 @@ public class CompassManager {
                     Player runner = Bukkit.getPlayer(runnerUuid);
                     if (runner != null && runner.isOnline() && runner.getGameMode() != org.bukkit.GameMode.SPECTATOR) {
                         ItemStack newCompass = createTrackerCompass(runner);
-                        boolean placed = false;
-                        for (int slot : slots) {
-                            if (slot >= 0 && slot < inv.getSize()) {
-                                if (inv.getItem(slot) == null || inv.getItem(slot).getType() == Material.AIR) {
-                                    inv.setItem(slot, newCompass);
-                                    placed = true;
-                                    break;
-                                }
+
+                        int emptySlot = -1;
+                        for (int i = 0; i < 36; i++) {
+                            if (inv.getItem(i) == null || inv.getItem(i).getType() == Material.AIR) {
+                                emptySlot = i;
+                                break;
                             }
                         }
-                        if (!placed) {
-                            inv.addItem(newCompass);
+
+                        if (emptySlot != -1) {
+                            inv.setItem(emptySlot, newCompass);
+                        } else {
+                            ItemStack displaced = inv.getItem(8);
+                            inv.setItem(8, newCompass);
+                            if (displaced != null && displaced.getType() != Material.AIR) {
+                                hunter.getWorld().dropItemNaturally(hunter.getLocation(), displaced);
+                                hunter.sendMessage("§eYour inventory was full! An item was dropped to make room for your tracking compass.");
+                            }
                         }
                     }
                 }
@@ -105,11 +117,15 @@ public class CompassManager {
     }
 
     public void startCompassUpdaterTask() {
+        int[] allSlots = new int[37];
+        for (int i = 0; i < 36; i++) allSlots[i] = i;
+        allSlots[36] = 40;
+
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             for (Player hunter : plugin.getPlayerManager().getOnlineHunters()) {
-                Inventory inv = hunter.getInventory();
-                for (int i = 0; i < inv.getSize(); i++) {
-                    ItemStack item = inv.getItem(i);
+                org.bukkit.inventory.PlayerInventory inv = hunter.getInventory();
+                for (int slotIndex : allSlots) {
+                    ItemStack item = slotIndex == 40 ? inv.getItemInOffHand() : inv.getItem(slotIndex);
                     if (isTrackerCompass(item)) {
                         UUID runnerUuid = getTrackedRunner(item);
                         if (runnerUuid != null) {
@@ -131,6 +147,24 @@ public class CompassManager {
                                         meta.setLore(List.of("§cTarget in different dim: §6" + runner.getWorld().getEnvironment().name()));
                                     }
                                     item.setItemMeta(meta);
+                                    if (slotIndex == 40) {
+                                        inv.setItemInOffHand(item);
+                                    } else {
+                                        inv.setItem(slotIndex, item);
+                                    }
+                                }
+                            } else {
+                                CompassMeta meta = (CompassMeta) item.getItemMeta();
+                                if (meta != null) {
+                                    String rName = runner != null ? runner.getName() : "Runner";
+                                    meta.setDisplayName("§aTracking: §e" + rName);
+                                    meta.setLore(List.of("§cRunner is OFFLINE (§7Last Known Location)"));
+                                    item.setItemMeta(meta);
+                                    if (slotIndex == 40) {
+                                        inv.setItemInOffHand(item);
+                                    } else {
+                                        inv.setItem(slotIndex, item);
+                                    }
                                 }
                             }
                         }

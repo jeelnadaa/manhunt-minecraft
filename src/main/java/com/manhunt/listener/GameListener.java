@@ -69,4 +69,13 @@ public class GameListener implements Listener {
             event.setCancelled(true);
         }
     }
+
+    @EventHandler
+    public void onPlayerTeleport(org.bukkit.event.player.PlayerTeleportEvent event) {
+        if (event.getCause() == org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.ENDER_PEARL) {
+            if (isPaused()) {
+                event.setCancelled(true);
+            }
+        }
+    }
 }

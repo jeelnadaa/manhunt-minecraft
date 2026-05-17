@@ -36,7 +36,11 @@ public class PlayerListener implements Listener {
         }
 
         if (plugin.getGameManager().getState() == GameState.PLAYING) {
-            if (!plugin.getPlayerManager().isRunner(player)) {
+            if (plugin.getPlayerManager().isRunner(player)) {
+                if (plugin.getConfigManager().getSettings().isChatLogsEnabled()) {
+                    Bukkit.broadcastMessage("§a[Manhunt] §eRunner " + player.getName() + " §ahas re-joined the hunt!");
+                }
+            } else {
                 plugin.getCompassManager().updateAllHuntersInventory();
             }
         }
@@ -73,7 +77,6 @@ public class PlayerListener implements Listener {
                     plugin.getGameManager().handleHuntersWin();
                 }
             } else {
-                // Hunter died: filter out tracking compasses from drops
                 Iterator<ItemStack> iterator = event.getDrops().iterator();
                 while (iterator.hasNext()) {
                     ItemStack item = iterator.next();
@@ -92,7 +95,9 @@ public class PlayerListener implements Listener {
         if (plugin.getGameManager().getState() == GameState.PLAYING) {
             World overworld = plugin.getWorldManager().getManhuntOverworld();
             if (overworld != null && Objects.requireNonNull(player.getLocation().getWorld()).getName().startsWith(overworld.getName())) {
-                event.setRespawnLocation(overworld.getSpawnLocation());
+                if (!event.isBedSpawn() && !event.isAnchorSpawn()) {
+                    event.setRespawnLocation(overworld.getSpawnLocation());
+                }
             }
 
             if (!plugin.getPlayerManager().isRunner(player)) {
@@ -126,6 +131,8 @@ public class PlayerListener implements Listener {
         World overworld = plugin.getWorldManager().getManhuntOverworld();
         World nether = plugin.getWorldManager().getManhuntNether();
         World end = plugin.getWorldManager().getManhuntEnd();
+
+        event.setCanCreatePortal(true);
 
         if (event.getCause() == PlayerPortalEvent.TeleportCause.NETHER_PORTAL) {
             if (currentWorld.getEnvironment() == World.Environment.NORMAL && nether != null) {

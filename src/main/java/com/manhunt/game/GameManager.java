@@ -97,6 +97,10 @@ public class GameManager {
                     inv.setItem(i, null);
                 }
             }
+            ItemStack offhand = p.getInventory().getItemInOffHand();
+            if (plugin.getCompassManager().isTrackerCompass(offhand)) {
+                p.getInventory().setItemInOffHand(null);
+            }
         }
 
         plugin.getWorldManager().teleportAllToBaseWorld();
@@ -116,7 +120,7 @@ public class GameManager {
             spawnVictoryFireworks(p);
         }
 
-        Bukkit.getScheduler().runTaskLater(plugin, this::end, 140L); // End after 7 seconds
+        Bukkit.getScheduler().runTaskLater(plugin, this::end, 300L); // End after 15 seconds
     }
 
     public void handleHuntersWin() {

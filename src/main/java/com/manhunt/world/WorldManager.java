@@ -20,6 +20,12 @@ public class WorldManager {
     }
 
     public void generateWorlds(Runnable onComplete) {
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            if (p.isDead()) {
+                p.spigot().respawn();
+            }
+        }
+
         if (plugin.getProfileManager() != null) {
             plugin.getProfileManager().switchAllToRealm(false);
             plugin.getProfileManager().wipeAllManhuntProfiles();

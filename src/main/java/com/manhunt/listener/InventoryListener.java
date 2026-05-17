@@ -54,4 +54,30 @@ public class InventoryListener implements Listener {
             ((Player) event.getWhoClicked()).sendMessage("§cYou cannot store tracking compasses in containers!");
         }
     }
+
+    @EventHandler
+    public void onInventoryDrag(org.bukkit.event.inventory.InventoryDragEvent event) {
+        if (event.getInventory().getType() != InventoryType.CRAFTING && event.getInventory().getType() != InventoryType.PLAYER) {
+            ItemStack oldCursor = event.getOldCursor();
+            if (plugin.getCompassManager().isTrackerCompass(oldCursor)) {
+                event.setCancelled(true);
+                if (event.getWhoClicked() instanceof Player p) {
+                    p.sendMessage("§cYou cannot store tracking compasses in containers!");
+                }
+            }
+        }
+    }
+
+    @EventHandler
+    public void onEntityInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
+        Player player = event.getPlayer();
+        ItemStack hand = player.getInventory().getItemInMainHand();
+        ItemStack offhand = player.getInventory().getItemInOffHand();
+        if (plugin.getCompassManager().isTrackerCompass(hand) || plugin.getCompassManager().isTrackerCompass(offhand)) {
+            if (event.getRightClicked() instanceof org.bukkit.entity.ItemFrame || event.getRightClicked() instanceof org.bukkit.entity.ArmorStand) {
+                event.setCancelled(true);
+                player.sendMessage("§cYou cannot place tracking compasses on entities!");
+            }
+        }
+    }
 }

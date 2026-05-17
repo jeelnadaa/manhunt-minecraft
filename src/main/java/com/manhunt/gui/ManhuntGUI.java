@@ -63,6 +63,9 @@ public class ManhuntGUI implements Listener {
 
         inv.setItem(12, createGuiItem(Material.REDSTONE_BLOCK, "§c§lEnd Match", "§7Click to end match and return to base world."));
 
+        boolean chatLogs = plugin.getConfigManager().getSettings().isChatLogsEnabled();
+        inv.setItem(13, createGuiItem(Material.PAPER, "§b§lChat Logs: " + (chatLogs ? "§a§lENABLED" : "§c§lDISABLED"), "§7Click to toggle plugin chat broadcasts."));
+
         inv.setItem(14, createGuiItem(Material.GRASS_BLOCK, "§b§lWorld Management", "§7Click to generate or teleport to worlds."));
         inv.setItem(15, createGuiItem(Material.DIAMOND_BOOTS, "§d§lManage Runners", "§7Click to add or remove runners."));
 
@@ -182,6 +185,11 @@ public class ManhuntGUI implements Listener {
                     player.sendMessage("§cCannot end: No active match is running!");
                     player.closeInventory();
                 }
+            } else if (slot == 13) {
+                boolean chatLogs = plugin.getConfigManager().getSettings().isChatLogsEnabled();
+                plugin.getConfigManager().getSettings().setChatLogsEnabled(!chatLogs);
+                player.sendMessage("§aManhunt chat logs toggled to " + (!chatLogs ? "ENABLED" : "DISABLED") + ".");
+                openMainGUI(player);
             } else if (slot == 14) {
                 openWorldGUI(player);
             } else if (slot == 15) {

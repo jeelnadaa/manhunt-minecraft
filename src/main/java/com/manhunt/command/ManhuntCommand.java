@@ -163,7 +163,18 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
                 plugin.getConfigManager().reload();
                 sender.sendMessage("§aManhunt configuration reloaded from disk.");
             }
-            default -> sender.sendMessage("§cUnknown subcommand. Options: gui, generate, tp, start, pause, resume, unpause, end, runner, timer, reload");
+            case "logs", "chatlogs" -> {
+                if (args.length >= 2) {
+                    boolean enable = args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("true");
+                    plugin.getConfigManager().getSettings().setChatLogsEnabled(enable);
+                    sender.sendMessage("§aManhunt chat logs have been " + (enable ? "ENABLED" : "DISABLED") + ".");
+                } else {
+                    boolean current = plugin.getConfigManager().getSettings().isChatLogsEnabled();
+                    plugin.getConfigManager().getSettings().setChatLogsEnabled(!current);
+                    sender.sendMessage("§aManhunt chat logs toggled to " + (!current ? "ENABLED" : "DISABLED") + ".");
+                }
+            }
+            default -> sender.sendMessage("§cUnknown subcommand. Options: gui, generate, tp, start, pause, resume, unpause, end, runner, timer, logs, reload");
         }
         return true;
     }
@@ -171,7 +182,7 @@ public class ManhuntCommand implements CommandExecutor, TabCompleter {
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("gui", "generate", "tp", "start", "pause", "resume", "unpause", "end", "runner", "timer", "reload");
+            return List.of("gui", "generate", "tp", "start", "pause", "resume", "unpause", "end", "runner", "timer", "logs", "reload");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("runner")) {
             return List.of("add", "remove", "list");

@@ -13,6 +13,7 @@ public class Settings {
     private String manhuntWorldPrefix;
     private List<UUID> runnerUuids = new ArrayList<>();
     private long currentGenerationId;
+    private boolean chatLogs = true;
 
     public Settings(ManhuntPlugin plugin) {
         this.plugin = plugin;
@@ -36,6 +37,7 @@ public class Settings {
             } catch (IllegalArgumentException ignored) {}
         }
         currentGenerationId = plugin.getConfig().getLong("current-generation-id", System.currentTimeMillis());
+        chatLogs = plugin.getConfig().getBoolean("chat-logs", true);
     }
 
     public synchronized void save() {
@@ -46,6 +48,7 @@ public class Settings {
         List<String> strings = runnerUuids.stream().map(UUID::toString).toList();
         plugin.getConfig().set("runners", strings);
         plugin.getConfig().set("current-generation-id", currentGenerationId);
+        plugin.getConfig().set("chat-logs", chatLogs);
         plugin.saveConfig();
     }
 
@@ -114,6 +117,15 @@ public class Settings {
 
     public synchronized void updateCurrentGenerationId() {
         this.currentGenerationId = System.currentTimeMillis();
+        save();
+    }
+
+    public boolean isChatLogsEnabled() {
+        return chatLogs;
+    }
+
+    public synchronized void setChatLogsEnabled(boolean chatLogs) {
+        this.chatLogs = chatLogs;
         save();
     }
 }
