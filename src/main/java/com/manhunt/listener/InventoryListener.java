@@ -35,6 +35,20 @@ public class InventoryListener implements Listener {
         ItemStack clicked = event.getCurrentItem();
         ItemStack cursor = event.getCursor();
 
+        if (event.getClick() == org.bukkit.event.inventory.ClickType.NUMBER_KEY) {
+            int hotbarSlot = event.getHotbarButton();
+            if (hotbarSlot >= 0 && hotbarSlot <= 8) {
+                ItemStack hotbarItem = event.getWhoClicked().getInventory().getItem(hotbarSlot);
+                if (plugin.getCompassManager().isTrackerCompass(hotbarItem)) {
+                    if (event.getClickedInventory() != null && event.getClickedInventory().getType() != InventoryType.PLAYER) {
+                        event.setCancelled(true);
+                        ((Player) event.getWhoClicked()).sendMessage("§cYou cannot store tracking compasses in containers!");
+                        return;
+                    }
+                }
+            }
+        }
+
         boolean isClickedCompass = plugin.getCompassManager().isTrackerCompass(clicked);
         boolean isCursorCompass = plugin.getCompassManager().isTrackerCompass(cursor);
 
