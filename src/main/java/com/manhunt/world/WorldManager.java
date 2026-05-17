@@ -20,19 +20,50 @@ public class WorldManager {
     }
 
     public void generateWorlds(Runnable onComplete) {
+        teleportAllToBaseWorld();
+
         String prefix = plugin.getConfigManager().getSettings().getManhuntWorldPrefix();
-        plugin.getLogger().info("Generating Manhunt Overworld...");
-        World overworld = new WorldCreator(prefix).environment(World.Environment.NORMAL).createWorld();
+        String[] worldNames = { prefix, prefix + "_nether", prefix + "_the_end" };
 
-        plugin.getLogger().info("Generating Manhunt Nether...");
-        World nether = new WorldCreator(prefix + "_nether").environment(World.Environment.NETHER).createWorld();
-
-        plugin.getLogger().info("Generating Manhunt End...");
-        World end = new WorldCreator(prefix + "_the_end").environment(World.Environment.THE_END).createWorld();
-
-        if (onComplete != null) {
-            onComplete.run();
+        for (String name : worldNames) {
+            World w = Bukkit.getWorld(name);
+            if (w != null) {
+                plugin.getLogger().info("Unloading world: " + name);
+                Bukkit.unloadWorld(w, false);
+            }
+            java.io.File worldFolder = new java.io.File(Bukkit.getWorldContainer(), name);
+            if (worldFolder.exists()) {
+                plugin.getLogger().info("Deleting old world folder: " + name);
+                deleteDirectory(worldFolder);
+            }
         }
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            plugin.getLogger().info("Generating fresh Manhunt Overworld...");
+            World overworld = new WorldCreator(prefix).environment(World.Environment.NORMAL).createWorld();
+
+            plugin.getLogger().info("Generating fresh Manhunt Nether...");
+            World nether = new WorldCreator(prefix + "_nether").environment(World.Environment.NETHER).createWorld();
+
+            plugin.getLogger().info("Generating fresh Manhunt End...");
+            World end = new WorldCreator(prefix + "_the_end").environment(World.Environment.THE_END).createWorld();
+
+            if (onComplete != null) {
+                onComplete.run();
+            }
+        }, 30L); // 1.5s delay to ensure file system locks are fully released
+    }
+
+    private boolean deleteDirectory(java.io.File dir) {
+        if (dir.isDirectory()) {
+            java.io.File[] files = dir.listFiles();
+            if (files != null) {
+                for (java.io.File file : files) {
+                    deleteDirectory(file);
+                }
+            }
+        }
+        return dir.delete();
     }
 
     public World getManhuntOverworld() {
