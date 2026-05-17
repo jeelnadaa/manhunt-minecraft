@@ -1,0 +1,25 @@
+# ==========================================
+#         Manhunt Configuration
+# ==========================================
+
+# Slots where tracking compasses will be placed for hunters.
+# 0-8 are hotbar slots (left to right). 40 is off-hand. 9-35 are main inventory.
+compass-slots:
+  - 8
+  - 7
+  - 6
+  - 5
+  - 4
+  - 40
+
+# Time limit in seconds. 0 means indefinite.
+time-limit: 0
+
+# Base server world name where players are returned when manhunt ends.
+base-world: "world"
+
+# Manhunt generated world prefix.
+manhunt-world: "manhunt_world"
+
+# List of assigned runner UUIDs (persisted across restarts).
+runners: []
